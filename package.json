@@ -1,0 +1,21 @@
+{
+  "name": "botv2",
+  "version": "1.0.0",
+  "type": "module",
+  "description": "",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "author": "",
+  "license": "ISC",
+  "dependencies": {
+    "@tensorflow/tfjs-node": "^4.8.0",
+    "audic": "^3.0.2",
+    "axios": "^1.4.0",
+    "sound": "^3.1.0",
+    "sound-play": "^1.1.0",
+    "technicalindicators": "^3.1.0",
+    "tone": "^14.7.77"
+  }
+}

@@ -1,0 +1,22 @@
+{
+    "information": {
+        "urlbaseapi": "https://api.binance.com/api/v1/"
+    }, 
+    "pairs": [
+        "DOTBUSD",
+        "XRPBUSD",
+        "SOLBUSD",
+        "ETHBUSD",
+        "EURBUSD",
+        "ADABUSD", 
+        "TRXBUSD", 
+        "XLMBUSD",
+        "LTCBUSD",
+        "VETBUSD",
+        "DASHBUSD",
+        "BNBBUSD",
+        "AVAXBUSD"
+    ],
+    "intervalMinutes": 1
+}
+    
