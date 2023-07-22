@@ -30,6 +30,7 @@ class Trend {
         let upper = 0;
         let down = 0;
         let incrementalTotal = 0;
+        let varianze = 0;
 
         for (let i = dataArray.length - 1; i > (dataArray.length - numItems); i--) {
             if(dataArray[i]["emaIndicator"].uppertrend === true) {
@@ -45,6 +46,14 @@ class Trend {
         responseObject["forceUpper%"] = forceUpper * 100;
         responseObject["forceDown%"] = (1 - forceUpper) * 100;
         responseObject["meanIncremental%"] = (incrementalTotal / total);
+
+        for (let i = dataArray.length - 1; i > (dataArray.length - numItems); i--) {    
+            varianze = varianze + Math.pow(dataArray[i]["emaIndicator"].diffPercentual - responseObject["meanIncremental%"], 2);
+        }
+
+        responseObject["stddesv"] = Math.pow((varianze / total), 0.5);
+
+
         return responseObject;
     }
 }

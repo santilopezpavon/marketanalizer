@@ -63,6 +63,7 @@ class CoinsInformation {
             let provisionalObject = {
                 high: parseFloat(element[2]),
                 low: parseFloat(element[3]),
+                "diff%": parseFloat((element[2]) - parseFloat(element[3])) / parseFloat(element[3]) * 100,
                 close: parseFloat(element[4]),
                 volume: parseFloat(element[5]),
                 numtrades: parseFloat(element[8]),
@@ -108,6 +109,26 @@ class CoinsInformation {
             const datos = response.data.symbols;
             const result = datos.filter(datos => datos.symbol == pair);
             return result[0].filters;
+        }).catch(function (error) {
+            console.log(error);
+        });
+    }
+
+    async getAllAssetsByQuoteAsset(quoteAsset, lim = 20) {
+        const url = "https://www.binance.com/api/v1/exchangeInfo";
+        let symbols = [];
+        return axios.get(url).then(function (response) {
+            const datos = response.data.symbols;
+            const result = datos.filter(datos => datos.quoteAsset == quoteAsset && datos.status === 'TRADING');
+            if(result.length < lim) {
+                lim = result.length;
+            }
+            
+            for (let index = 0; index < lim; index++) {             
+                symbols.push(result[index].symbol);                
+            }
+            
+            return symbols;
         }).catch(function (error) {
             console.log(error);
         });

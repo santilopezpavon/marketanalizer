@@ -11,6 +11,11 @@ class Desviation {
 
     static #instance;
 
+    firstBollinguer = 'bollingerBandsIndicator';
+    secondBollinguer = 'bollingerBandsIndicatorSt4';
+    thirdBollinguer = 'bollingerBandsIndicatorSt5';
+    cuartBollinguer = 'bollingerBandsIndicatorSt6';
+
     constructor() {
     }
 
@@ -22,21 +27,68 @@ class Desviation {
     }
 
     getDesviationAnalisis(dataArray = []) {
-        const numItems = 2;
         const lastItem = dataArray[dataArray.length - 1];
 
         return  {
-            underLower: lastItem["bollingerBandsIndicator"].pb < 0,
-            upperHigher: lastItem["bollingerBandsIndicator"].pb > 100,
-            pb: lastItem["bollingerBandsIndicator"].pb
+            underLower: lastItem[this.firstBollinguer].pb < 0,
+            upperHigher: lastItem[this.firstBollinguer].pb > 100,
+            pb: lastItem[this.firstBollinguer].pb,
+            "std3": lastItem[this.firstBollinguer],
+            "std4": lastItem[this.secondBollinguer],
+            "std5": lastItem[this.thirdBollinguer],  
+            "std6": lastItem[this.cuartBollinguer],           
         };
-        console.log(lastItem["bollingerBandsIndicator"].pb);
+    }
 
-        /*for (let i = dataArray.length - 1; i > (dataArray.length - numItems); i--) {
-            console.log(dataArray[i]["bollingerBandsIndicator"])    
-            console.log(dataArray[i]);        
+    
+    getBreaksStdAnalysis(dataArray = []) {
+        const lastPos = dataArray.length - 1;
+        let positionLastBreak = null;
+        let breakInformation = {
+            "candleBreakPositon": null,
+            "breakBollinguerData": null,
+            "lapsedTime": null 
+        };
+
+        for (let i = lastPos; i >= 0 ; i--) {
+            if(
+                dataArray[i].hasOwnProperty("bollingerBandsIndicatorSt32") && 
+                dataArray[i]["bollingerBandsIndicatorSt32"].pb < 0
+            ) {
+                positionLastBreak = i;
+                break;
+            }
         }
 
-        console.log(responseObject);*/
+        if(positionLastBreak === null) {return false;}
+
+       
+        breakInformation = {
+            "candleBreakPositon": positionLastBreak,
+            "breakBollinguerData": dataArray[positionLastBreak]["bollingerBandsIndicatorSt32"],
+            "lapsedTime": dataArray.length - positionLastBreak
+        }
+
+        if(
+            dataArray[positionLastBreak]["bollingerBandsIndicatorSt4"].pb < 0
+        ) {
+            breakInformation["breakBollinguerData"] = dataArray[positionLastBreak]["bollingerBandsIndicatorSt4"];
+        } 
+
+        if(
+            dataArray[positionLastBreak]["bollingerBandsIndicatorSt5"].pb < 0
+        ) {
+            breakInformation["breakBollinguerData"] = dataArray[positionLastBreak]["bollingerBandsIndicatorSt5"];
+        } 
+
+        if(
+            dataArray[positionLastBreak]["bollingerBandsIndicatorSt6"].pb < 0
+        ) {
+            breakInformation["breakBollinguerData"] = dataArray[positionLastBreak]["bollingerBandsIndicatorSt6"];
+        } 
+
+        breakInformation["breakBollinguerData"]["pointMean"] =  (breakInformation["breakBollinguerData"].middle + breakInformation["breakBollinguerData"].lower) / 2
+
+        return breakInformation;
     }
 }

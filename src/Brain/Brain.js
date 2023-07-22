@@ -38,7 +38,7 @@ class Brain {
         return Brain.#instance;
     }
 
-    async executeBrain(pairs = []) {
+    async processBrain(pairs = []) {
         let results = {};
         for (let index = 0; index < pairs.length; index++) {
             try {
@@ -47,20 +47,22 @@ class Brain {
             } catch (error) {console.log(error);}
         }
 
-
-        
         const responseCurrent = {};
-
         
         for (const key in results) {
-           // console.log("---- Analisis Par " + key);
             responseCurrent[key] = {
                 ...this.marketWithDivergences(results[key]),
                 ...this.narketHealth(results[key]),
                 ...this.marketAlteredPrice(results[key])
-            };
-           
+            };           
         }
+
+        return responseCurrent;
+    }
+
+    async executeBrain(pairs = []) {
+        const responseCurrent = await this.processBrain(pairs);
+
         let pairsMercadoEntrar = [];
         let pairsMercadoSalir = [];
 
@@ -115,8 +117,7 @@ class Brain {
                     alarm = true;
                     break;
                 }               
-            }                
-            
+            }           
         }
 
         if(
@@ -132,19 +133,12 @@ class Brain {
             "pairsMercadoEntrar": pairsMercadoEntrar.slice(),
             "pairsMercadoSalir": pairsMercadoSalir.slice()
         }
-        
-        
-
-
 
         if(alarm == true && pairsMercadoEntrar.length) {            
             await this.sound.getSoundAlertUpMarket();            
-        }
-        if(alarm == true && pairsMercadoSalir.length) {            
+        } else  if(alarm == true && pairsMercadoSalir.length) {            
             await this.sound.getSoundAlertDownMarket();            
         }
-
-
     }
 
     marketWithDivergences(response) {
@@ -185,7 +179,8 @@ class Brain {
             market = "down";
         }
 
-        return {"marketTrend": market, "incremental%": response.trend["meanIncremental%"]}
+   
+        return { "marketTrend": market, "incremental%": response.trend["meanIncremental%"], "stddev": response.trend.stddesv}
     }
 
     marketAlteredPrice(response) {
@@ -198,11 +193,69 @@ class Brain {
         return {"priceValor": market}
     }
 
+    async pricesForSell(data) {
+        let quibreMinimo = null;
+        let quibreMinimoTocado = 0;
+        let quibrePosicion = null;
+        let quibrePosicionLapso = null;
+        let precioCompraQuiebre = null;
+        let potencialGananciaQuiebre = null;
+        
+        for (let i = data.length - 1; i > 0; i--) {
+            const element = data[i];
+            if(
+                element.hasOwnProperty("bollingerBandsIndicator") &&
+                element.bollingerBandsIndicator.pb < 0
+            )  {
+                quibrePosicion = i;
+                quibreMinimo = element["bollingerBandsIndicator"].lower;
+                quibrePosicionLapso = data.length - quibrePosicion
+                precioCompraQuiebre = data[quibrePosicion].low;
+                potencialGananciaQuiebre = (quibreMinimo - precioCompraQuiebre) / precioCompraQuiebre;
+                break;
+            }
+        }
+
+        if(quibrePosicion !== null) {
+            for (let i = data.length - 1; i > quibrePosicion + 5; i--) {
+                if(
+                    data[i].high  > quibreMinimo 
+                )  {
+                    quibreMinimoTocado++;                    
+                }
+            }
+        }
+
+        return {
+            "quibreMinimoTocado": quibreMinimoTocado,
+            "quibreMinimo": quibreMinimo,
+            "quibrePosicionLapso": quibrePosicionLapso,
+            "precioCompraQuiebre": precioCompraQuiebre,            
+            "precioVentaQuiebre": quibreMinimo,
+            "potencialGananciaQuiebre": potencialGananciaQuiebre,
+
+            "currentPrice": data[data.length - 1].close,
+            "current-1": data[data.length - 2].high,
+            "current-2": data[data.length - 3].high,
+            "current-3": data[data.length - 4].high,
+
+            "current-1%": ((data[data.length - 2].high - data[data.length - 1].close) / data[data.length - 1].close) * 100,
+            "current-2%": ((data[data.length - 3].high - data[data.length - 1].close) / data[data.length - 1].close)* 100,
+            "current-3%": ((data[data.length - 4].high - data[data.length - 1].close) / data[data.length - 1].close)* 100
+        };
+    }
+
     async analisePair(pair) {
         const data = await this.coinsInfo.getHistoricalData(pair, "1m");
 
         const aoResults = this.ao.getAwesomeOscillator(data);
         const bollingerBandsIndicator = this.bollingerBands.getBollingerBands(data);
+        const bollingerBandsIndicatorSt32 = this.bollingerBands.getBollingerBands(data, 150, 3.2);
+
+        const bollingerBandsIndicatorSt4 = this.bollingerBands.getBollingerBands(data, 150, 4);
+        const bollingerBandsIndicatorSt5 = this.bollingerBands.getBollingerBands(data, 150, 5);
+        const bollingerBandsIndicatorSt6 = this.bollingerBands.getBollingerBands(data, 150, 6);
+
         const dataLong = await this.coinsInfo.getHistoricalData(pair, "15m");
         const emaData = this.ema.getEMACross(dataLong);
        
@@ -210,11 +263,23 @@ class Brain {
         this.mergeIndicators.setIndicator(data, aoResults, "awesomeOscilator");
         this.mergeIndicators.setIndicator(data, emaData, "emaIndicator");
 
+        this.mergeIndicators.setIndicator(data, bollingerBandsIndicatorSt6, "bollingerBandsIndicatorSt6");
+        this.mergeIndicators.setIndicator(data, bollingerBandsIndicatorSt4, "bollingerBandsIndicatorSt4");
+        this.mergeIndicators.setIndicator(data, bollingerBandsIndicatorSt5, "bollingerBandsIndicatorSt5");
+        this.mergeIndicators.setIndicator(data, bollingerBandsIndicatorSt32, "bollingerBandsIndicatorSt32");
+
+        
+        const dataPrices = await this.pricesForSell(data);
+
+        //this.mergeIndicators.setIndicator(data, dataPrices, "emaIndicator");
+
 
         return {
             "divergencias": getDivergence().analisisAoDivergences(data),
             "trend": getTrend().getAnalisisTrend(data),
-            "desviation": getDesviation().getDesviationAnalisis(data)
+            //"desviation": getDesviation().getDesviationAnalisis(data),
+            "breaksStd": getDesviation().getBreaksStdAnalysis(data),
+            "dataPrices": dataPrices
         };
             
     }
